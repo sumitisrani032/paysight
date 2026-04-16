@@ -106,4 +106,23 @@ RSpec.describe "Employees API", type: :request do
       expect(body["meta"]["total_count"]).to eq(0)
     end
   end
+
+  describe "GET /api/v1/employees/:id" do
+    it "returns the employee" do
+      employee = create(:employee, full_name: "Jane Doe")
+
+      get "/api/v1/employees/#{employee.id}"
+
+      body = JSON.parse(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(body["employee"]["full_name"]).to eq("Jane Doe")
+    end
+
+    it "returns 404 for non-existent employee" do
+      get "/api/v1/employees/999999"
+
+      expect(response).to have_http_status(:not_found)
+      expect(response.content_type).to include("application/json")
+    end
+  end
 end
