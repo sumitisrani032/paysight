@@ -157,4 +157,20 @@ RSpec.describe "Employees API", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "DELETE /api/v1/employees/:id" do
+    it "deletes the employee and returns 204" do
+      employee = create(:employee)
+
+      expect { delete "/api/v1/employees/#{employee.id}" }.to change(Employee, :count).by(-1)
+
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "returns 404 for non-existent employee" do
+      delete "/api/v1/employees/999999"
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end
