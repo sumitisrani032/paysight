@@ -18,6 +18,11 @@ module Api
         }
       end
 
+      def show
+        employee = Employee.find(params[:id])
+        render json: { employee: employee }
+      end
+
       def create
         employee = Employee.new(employee_params)
 
