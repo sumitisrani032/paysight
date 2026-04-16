@@ -33,6 +33,16 @@ module Api
         end
       end
 
+      def update
+        employee = Employee.find(params[:id])
+
+        if employee.update(employee_params)
+          render json: { employee: employee }
+        else
+          render json: { errors: employee.errors.full_messages }, status: :unprocessable_entity
+        end
+      end
+
       private
 
       def employee_params
