@@ -125,4 +125,36 @@ RSpec.describe "Employees API", type: :request do
       expect(response.content_type).to include("application/json")
     end
   end
+
+  describe "PATCH /api/v1/employees/:id" do
+    let!(:employee) { create(:employee, full_name: "Old Name") }
+
+    it "updates the employee and returns the updated record" do
+      patch "/api/v1/employees/#{employee.id}", params: { employee: { full_name: "New Name" } }
+
+      body = JSON.parse(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(body["employee"]["full_name"]).to eq("New Name")
+    end
+
+    it "returns 422 when update violates validation" do
+      patch "/api/v1/employees/#{employee.id}", params: { employee: { salary: -1 } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns 422 when updating email to one already taken" do
+      create(:employee, email: "taken@example.com")
+
+      patch "/api/v1/employees/#{employee.id}", params: { employee: { email: "taken@example.com" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns 404 for non-existent employee" do
+      patch "/api/v1/employees/999999", params: { employee: { full_name: "Ghost" } }
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end
