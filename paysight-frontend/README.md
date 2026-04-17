@@ -19,15 +19,29 @@ Backend must be running on `http://localhost:3000`.
 
 ## Pages
 
-- `/employees` — Employee table with pagination, add/edit/delete
+- `/employees` — Paginated employee table with filters (exact email, country, job title, status), plus create/edit/delete
 - `/employees/:id` — Employee detail view
-- `/analytics` — Salary insights dashboard
+- `/analytics` — Salary insights dashboard (stats by country, averages by job title, country summary)
 
 ## Tech Stack
 
 - Next.js 15.5 (App Router)
 - React 19
 - TypeScript
-- Ant Design 5
+- Ant Design 6
 - Recharts
-- Axios
+- Axios (with a response interceptor that unwraps the `{ success, data, meta }` envelope)
+
+## Structure
+
+```
+src/
+├── app/                 Pages (App Router)
+├── components/          EmployeeTable, EmployeeForm, AppShell, Loader
+├── hooks/               useEmployees (with filters), useEmployee, useSalaryInsights
+├── services/            employeesApi, analyticsApi
+├── types/               Shared TypeScript interfaces
+├── constants/           Routes, API paths, countries, job titles, statuses
+├── lib/                 Axios instance + response interceptor
+└── styles/              Global CSS
+```
