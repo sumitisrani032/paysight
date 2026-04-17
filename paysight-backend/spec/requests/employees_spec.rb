@@ -1,6 +1,8 @@
 require 'rails_helper'
 
-RSpec.describe 'Employees API', type: :request do
+RSpec.describe 'Api::V1::Employees', type: :request do
+  let(:body) { JSON.parse(response.body) }
+  let(:headers) { { 'CONTENT_TYPE' => 'application/json' } }
   let(:valid_params) do
     {
       employee: {
@@ -18,11 +20,9 @@ RSpec.describe 'Employees API', type: :request do
 
   describe 'POST /api/v1/employees' do
     it 'creates an employee with valid data and returns 201' do
-      post '/api/v1/employees', params: valid_params
+      post '/api/v1/employees', params: valid_params.to_json, headers: headers
 
       expect(response).to have_http_status(:created)
-
-      body = JSON.parse(response.body)
       expect(body['success']).to be(true)
       expect(body['data']['employee']['full_name']).to eq('John Doe')
       expect(body['data']['employee']['email']).to eq('john@example.com')
@@ -30,11 +30,9 @@ RSpec.describe 'Employees API', type: :request do
     end
 
     it 'returns 422 with validation errors when required fields are missing' do
-      post '/api/v1/employees', params: { employee: { currency: 'USD' } }
+      post '/api/v1/employees', params: { employee: { currency: 'USD' } }.to_json, headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
-
-      body = JSON.parse(response.body)
       expect(body['success']).to be(false)
       expect(body['errors']).to include(/full name/i)
       expect(body['errors']).to include(/salary/i)
@@ -43,23 +41,22 @@ RSpec.describe 'Employees API', type: :request do
     it 'returns 422 when email is already taken' do
       create(:employee, email: 'john@example.com')
 
-      post '/api/v1/employees', params: valid_params
+      post '/api/v1/employees', params: valid_params.to_json, headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
-      body = JSON.parse(response.body)
       expect(body['errors']).to include(/email/i)
     end
 
     it 'returns 422 when email format is invalid' do
       invalid = valid_params.deep_merge(employee: { email: 'not-an-email' })
 
-      post '/api/v1/employees', params: invalid
+      post '/api/v1/employees', params: invalid.to_json, headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it 'returns 400 when params are empty' do
-      post '/api/v1/employees', params: {}
+      post '/api/v1/employees', params: {}.to_json, headers: headers
 
       expect(response).to have_http_status(:bad_request)
       expect(response.content_type).to include('application/json')
@@ -67,45 +64,43 @@ RSpec.describe 'Employees API', type: :request do
   end
 
   describe 'GET /api/v1/employees' do
-    before do
-      create(:employee, full_name: 'Amit Sharma', country: 'India', salary: 50_000)
-      create(:employee, full_name: 'Priya Patel', country: 'India', salary: 60_000)
-      create(:employee, full_name: 'John Smith', country: 'USA', salary: 90_000)
+    context 'with employees' do
+      before do
+        create(:employee, full_name: 'Amit Sharma', country: 'India', salary: 50_000)
+        create(:employee, full_name: 'Priya Patel', country: 'India', salary: 60_000)
+        create(:employee, full_name: 'John Smith', country: 'USA', salary: 90_000)
+      end
+
+      it 'returns paginated employees with meta information' do
+        get '/api/v1/employees'
+
+        expect(response).to have_http_status(:ok)
+        expect(body['data']['employees'].length).to eq(3)
+        expect(body['meta']).to include('total_count', 'total_pages', 'current_page', 'per_page')
+      end
+
+      it 'caps per_page at 100 regardless of requested value' do
+        get '/api/v1/employees', params: { per_page: 999 }
+
+        expect(body['meta']['per_page']).to be <= 100
+      end
+
+      it 'respects page and per_page parameters' do
+        get '/api/v1/employees', params: { page: 1, per_page: 2 }
+
+        expect(body['data']['employees'].length).to eq(2)
+        expect(body['meta']['current_page']).to eq(1)
+        expect(body['meta']['per_page']).to eq(2)
+      end
     end
 
-    it 'returns paginated employees with meta information' do
-      get '/api/v1/employees'
+    context 'with no employees' do
+      it 'returns empty list with valid meta when no results match' do
+        get '/api/v1/employees'
 
-      body = JSON.parse(response.body)
-      expect(response).to have_http_status(:ok)
-      expect(body['data']['employees'].length).to eq(3)
-      expect(body['meta']).to include('total_count', 'total_pages', 'current_page', 'per_page')
-    end
-
-    it 'caps per_page at 100 regardless of requested value' do
-      get '/api/v1/employees', params: { per_page: 999 }
-
-      body = JSON.parse(response.body)
-      expect(body['meta']['per_page']).to be <= 100
-    end
-
-    it 'respects page and per_page parameters' do
-      get '/api/v1/employees', params: { page: 1, per_page: 2 }
-
-      body = JSON.parse(response.body)
-      expect(body['data']['employees'].length).to eq(2)
-      expect(body['meta']['current_page']).to eq(1)
-      expect(body['meta']['per_page']).to eq(2)
-    end
-
-    it 'returns empty list with valid meta when no results match' do
-      Employee.delete_all
-
-      get '/api/v1/employees'
-
-      body = JSON.parse(response.body)
-      expect(body['data']['employees']).to eq([])
-      expect(body['meta']['total_count']).to eq(0)
+        expect(body['data']['employees']).to eq([])
+        expect(body['meta']['total_count']).to eq(0)
+      end
     end
   end
 
@@ -122,7 +117,6 @@ RSpec.describe 'Employees API', type: :request do
     it 'filters by country' do
       get '/api/v1/employees', params: { country: 'India' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees'].pluck('country').uniq).to eq(['India'])
       expect(body['data']['employees'].length).to eq(2)
     end
@@ -130,7 +124,6 @@ RSpec.describe 'Employees API', type: :request do
     it 'filters by job_title' do
       get '/api/v1/employees', params: { job_title: 'Designer' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees'].length).to eq(1)
       expect(body['data']['employees'].first['full_name']).to eq('John Smith')
     end
@@ -138,7 +131,6 @@ RSpec.describe 'Employees API', type: :request do
     it 'filters by employment_status' do
       get '/api/v1/employees', params: { employment_status: 'terminated' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees'].length).to eq(1)
       expect(body['data']['employees'].first['full_name']).to eq('Priya Patel')
     end
@@ -146,7 +138,6 @@ RSpec.describe 'Employees API', type: :request do
     it 'filters by exact email match' do
       get '/api/v1/employees', params: { email: 'rahul@paysight.com' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees'].length).to eq(1)
       expect(body['data']['employees'].first['email']).to eq('rahul@paysight.com')
     end
@@ -154,14 +145,12 @@ RSpec.describe 'Employees API', type: :request do
     it 'returns empty when email has no exact match (no partial matching)' do
       get '/api/v1/employees', params: { email: 'rahul' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees']).to eq([])
     end
 
     it 'combines email filter with other filters' do
       get '/api/v1/employees', params: { email: 'rahul@paysight.com', country: 'India', employment_status: 'active' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees'].length).to eq(1)
       expect(body['data']['employees'].first['full_name']).to eq('Rahul Sharma')
     end
@@ -169,7 +158,6 @@ RSpec.describe 'Employees API', type: :request do
     it 'returns empty list when no employees match the filters' do
       get '/api/v1/employees', params: { country: 'India', employment_status: 'inactive' }
 
-      body = JSON.parse(response.body)
       expect(body['data']['employees']).to eq([])
       expect(body['meta']['total_count']).to eq(0)
     end
@@ -181,7 +169,6 @@ RSpec.describe 'Employees API', type: :request do
 
       get "/api/v1/employees/#{employee.id}"
 
-      body = JSON.parse(response.body)
       expect(response).to have_http_status(:ok)
       expect(body['data']['employee']['full_name']).to eq('Jane Doe')
     end
@@ -198,15 +185,14 @@ RSpec.describe 'Employees API', type: :request do
     let!(:employee) { create(:employee, full_name: 'Old Name') }
 
     it 'updates the employee and returns the updated record' do
-      patch "/api/v1/employees/#{employee.id}", params: { employee: { full_name: 'New Name' } }
+      patch "/api/v1/employees/#{employee.id}", params: { employee: { full_name: 'New Name' } }.to_json, headers: headers
 
-      body = JSON.parse(response.body)
       expect(response).to have_http_status(:ok)
       expect(body['data']['employee']['full_name']).to eq('New Name')
     end
 
     it 'returns 422 when update violates validation' do
-      patch "/api/v1/employees/#{employee.id}", params: { employee: { salary: -1 } }
+      patch "/api/v1/employees/#{employee.id}", params: { employee: { salary: -1 } }.to_json, headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
@@ -214,13 +200,13 @@ RSpec.describe 'Employees API', type: :request do
     it 'returns 422 when updating email to one already taken' do
       create(:employee, email: 'taken@example.com')
 
-      patch "/api/v1/employees/#{employee.id}", params: { employee: { email: 'taken@example.com' } }
+      patch "/api/v1/employees/#{employee.id}", params: { employee: { email: 'taken@example.com' } }.to_json, headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it 'returns 404 for non-existent employee' do
-      patch '/api/v1/employees/999999', params: { employee: { full_name: 'Ghost' } }
+      patch '/api/v1/employees/999999', params: { employee: { full_name: 'Ghost' } }.to_json, headers: headers
 
       expect(response).to have_http_status(:not_found)
     end
