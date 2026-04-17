@@ -107,6 +107,72 @@ RSpec.describe "Employees API", type: :request do
     end
   end
 
+  describe "GET /api/v1/employees with search and filters" do
+    before do
+      create(:employee, full_name: "Rahul Sharma", email: "rahul@paysight.com",
+                        country: "India", job_title: "Engineer", employment_status: "active")
+      create(:employee, full_name: "John Smith", email: "john@paysight.com",
+                        country: "USA", job_title: "Designer", employment_status: "inactive")
+      create(:employee, full_name: "Priya Patel", email: "priya@paysight.com",
+                        country: "India", job_title: "Engineer", employment_status: "terminated")
+    end
+
+    it "filters by country" do
+      get "/api/v1/employees", params: { country: "India" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"].pluck("country").uniq).to eq(["India"])
+      expect(body["employees"].length).to eq(2)
+    end
+
+    it "filters by job_title" do
+      get "/api/v1/employees", params: { job_title: "Designer" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"].length).to eq(1)
+      expect(body["employees"].first["full_name"]).to eq("John Smith")
+    end
+
+    it "filters by employment_status" do
+      get "/api/v1/employees", params: { employment_status: "terminated" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"].length).to eq(1)
+      expect(body["employees"].first["full_name"]).to eq("Priya Patel")
+    end
+
+    it "filters by exact email match" do
+      get "/api/v1/employees", params: { email: "rahul@paysight.com" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"].length).to eq(1)
+      expect(body["employees"].first["email"]).to eq("rahul@paysight.com")
+    end
+
+    it "returns empty when email has no exact match (no partial matching)" do
+      get "/api/v1/employees", params: { email: "rahul" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"]).to eq([])
+    end
+
+    it "combines email filter with other filters" do
+      get "/api/v1/employees", params: { email: "rahul@paysight.com", country: "India", employment_status: "active" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"].length).to eq(1)
+      expect(body["employees"].first["full_name"]).to eq("Rahul Sharma")
+    end
+
+    it "returns empty list when no employees match the filters" do
+      get "/api/v1/employees", params: { country: "India", employment_status: "inactive" }
+
+      body = JSON.parse(response.body)
+      expect(body["employees"]).to eq([])
+      expect(body["meta"]["total_count"]).to eq(0)
+    end
+  end
+
   describe "GET /api/v1/employees/:id" do
     it "returns the employee" do
       employee = create(:employee, full_name: "Jane Doe")
