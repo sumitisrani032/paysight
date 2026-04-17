@@ -1,13 +1,13 @@
 class EmployeeSeeder
   BATCH_SIZE = 1_000
   TOTAL = 10_000
-  DATA_PATH = Rails.root.join("db/data/fixtures").freeze
+  DATA_PATH = Rails.root.join('db/data/fixtures').freeze
 
   def call
-    countries = read_json("countries.json")
-    job_titles = read_json("job_titles.json")
-    first_names = read_lines("first_names.txt")
-    last_names = read_lines("last_names.txt")
+    countries = read_json('countries.json')
+    job_titles = read_json('job_titles.json')
+    first_names = read_lines('first_names.txt')
+    last_names = read_lines('last_names.txt')
 
     fn_size = first_names.size
     ln_size = last_names.size
@@ -31,7 +31,7 @@ class EmployeeSeeder
             country: country,
             salary: rand(30_000..250_000).round(2),
             currency: currency,
-            employment_status: "active",
+            employment_status: 'active',
             date_of_joining: Date.today - rand(1..1825),
             created_at: now,
             updated_at: now
