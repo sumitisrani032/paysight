@@ -15,4 +15,12 @@ Rails.application.configure do
   config.i18n.fallbacks = true
   config.active_support.report_deprecations = false
   config.active_record.dump_schema_after_migration = false
+
+  # Railway's assigned public domain — and any *.railway.app subdomain.
+  # Add more hosts via RAILS_ALLOWED_HOSTS=host1,host2 env var.
+  config.hosts << 'paysight-production.up.railway.app'
+  config.hosts << /.*\.railway\.app\z/
+  ENV.fetch('RAILS_ALLOWED_HOSTS', '').split(',').map(&:strip).reject(&:empty?).each do |host|
+    config.hosts << host
+  end
 end
