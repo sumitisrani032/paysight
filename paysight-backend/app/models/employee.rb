@@ -1,6 +1,8 @@
 class Employee < ApplicationRecord
   EMAIL_FORMAT = /\A[^@\s]+@[^@\s]+\.[^@\s]+\z/
 
+  enum :employment_status, { active: "active", inactive: "inactive", terminated: "terminated" }, default: "active"
+
   scope :by_country, ->(country) { where(country: country) }
   scope :by_job_title, ->(title) { where(job_title: title) }
   scope :by_status, ->(status) { where(employment_status: status) }

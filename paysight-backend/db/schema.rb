@@ -26,7 +26,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_181710) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index "lower((email)::text)", name: "index_employees_on_lower_email", unique: true
+    t.index ["country", "job_title", "salary"], name: "index_employees_on_country_and_job_title_and_salary"
+    t.index ["country", "job_title"], name: "index_employees_on_country_and_job_title"
+    t.index ["country"], name: "index_employees_on_country"
     t.index ["email", "country", "job_title", "employment_status"], name: "idx_employees_email_country_title_status"
+    t.index ["employment_status"], name: "index_employees_on_employment_status"
+    t.index ["job_title"], name: "index_employees_on_job_title"
     t.check_constraint "salary > 0::numeric", name: "chk_employees_salary_positive"
   end
 end
