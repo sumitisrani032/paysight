@@ -10,9 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_16_102711) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_16_181710) do
   # These are extensions that must be enabled in order to support this database
-  enable_extension "plpgsql"
+  enable_extension "pg_catalog.plpgsql"
 
   create_table "employees", force: :cascade do |t|
     t.string "full_name", null: false
@@ -26,7 +26,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_16_102711) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index "lower((email)::text)", name: "index_employees_on_lower_email", unique: true
+    t.index ["email", "country", "job_title", "employment_status"], name: "idx_employees_email_country_title_status"
     t.check_constraint "salary > 0::numeric", name: "chk_employees_salary_positive"
   end
-
 end
