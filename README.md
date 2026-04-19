@@ -12,7 +12,8 @@ paysight/
 ```
 
 ## Quick Start
-
+### Application Live Demo Link
+[https://wondrous-mandazi-2c33df.netlify.app/employees](https://wondrous-mandazi-2c33df.netlify.app/employees)
 ### Backend
 ```bash
 cd paysight-backend
